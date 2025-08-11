@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What's SCAMPER?</title>
+<link rel="stylesheet" href="./style.css">
+<link rel="icon" href="./pictures/favicon.ico" type="image/x-icon">
+</head>
+
+<body>
+<div class="section1">
+    <h1>SCAMPER NOVELIST</h1>
+    <h2>「SCAMPER」で、ネタ切れを防ぐ。</h2>
+    <!-- SCAMPERの説明キャッチ -->
+        <div class="accordion">
+        <button class="accordion-btn" type="button">SCAMPERとは？<br>（タップで説明表示）</button>
+            <div class="accordion-content">
+                <b>SCAMPER</b>は、創造的なアイデアを生み出すための7つの視点からなる発想フレームワークです。<br>
+                もともとは、製品開発や問題解決のために考案され、ブレインストーミングでよく使われる技法ですが、<br>
+                小説やシナリオ、企画など、あらゆる「ネタ切れ」に効く思考のツールです。<br><br>
+
+            各頭文字は次の7つの発想法を表します：
+            <ul>
+                <li><b>S</b> - Substitute（代える）</li>
+                <li><b>C</b> - Combine（組み合わせる）</li>
+                <li><b>A</b> - Adapt（応用する）</li>
+                <li><b>M</b> - Modify（変える）</li>
+                <li><b>P</b> - Put to another use（他の用途）</li>
+                <li><b>E</b> - Eliminate（省く）</li>
+                <li><b>R</b> - Reverse / Rearrange（逆・並べ替え）</li>
+            </ul>
+            たとえば「吸血鬼」という設定を「Reverse（逆にする）」と、「血を吸われる人間が実は支配者だった」など、意外性のあるアイデアが生まれます。<br>
+            まずは、あなただけのネタ帳を書き溜め、SCAMPERでネタを膨らませてみましょう。<br><br>
+
+            <p>
+            <b>SCAMPER</b> is a creativity framework made of seven idea triggers.<br>
+            It’s especially useful for writers, creators, and anyone facing “idea droughts.”<br>
+            Begin with your own idea journal, and let SCAMPER breathe life into your thoughts.
+            </p>
+            </div>
+        </div>
+    <!-- ボタン -->
+    <div class="lesson-buttons">
+        <a href="./register.html" class="lesson-button register">📜<br>ログイン<br>登録</a>
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.accordion-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const acc = this.parentElement;
+        acc.classList.toggle('active');
+    });
+});
+</script>
+
+</body>
+</html>

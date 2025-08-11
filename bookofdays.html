@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What's SCAMPER?</title>
+<link rel="stylesheet" href="./style_bookofdays.css">
+<link rel="icon" href="../pictures/favicon.ico" type="image/x-icon">
+</head>
+
+<body>
+<!-- ここからが本番！ -->
+<div class="section">
+    <h2>📚BOOK OF DAYS; あなた自身の物語</h2>
+    <p class="en">This way became my journey<br>
+        — Enya / <i>Book Of Days</i><br>
+    <a href="https://youtu.be/LiBwr4U59EI?feature=shared" target="_blank" style="font-size: 0.9em;">▶︎ Listen on YouTube</a>
+    </p>
+
+    <!-- アコーディオン -->
+    <div class="accordion">
+        <button class="accordion-btn" type="button">
+            まずは、自分という物語から。<br>（タップで説明表示）
+        </button>
+        <div class="accordion-content">
+            小説を書くことは、白紙の世界に“あなた”を投影すること。<br>
+            ペンを持つ手が向き合う最初のキャラクターは、他の誰でもない、<b>あなた自身</b>かもしれません。<br><br>
+
+            まずは、自分の内にある過去や違和感、ささやかな怒りや願いに耳を澄ませること。
+            デザイン思考でいう<b>Empathize（共感）</b>を通して、<br> 
+            言葉にならなかった気持ちを、物語の“種”として拾い上げてみてください。<br><br>
+
+            次に、その中から「書きたい問い」や「向き合いたいテーマ」を選び取る時間が必要です。
+            それは、デザイン思考でいう<b>Define（定義）</b>。
+            一見取るに足らない感情や体験が、やがて誰かの心に触れる物語になるかもしれません。<br><br>
+
+            ここから始まるのは、あなた自身の<b>“BOOK OF DAYS”</b>。  
+            まだ名前のない物語を、そっと書きとめていきましょう。
+        </div>
+    </div>
+    <!-- ボタン -->
+    <div class="lesson-buttons">
+        <a href="./favs.html" class="lesson-button favs">💗<br>好きを語る<br>ノート</a>
+        <a href="./journals.html" class="lesson-button journal">💛<br>心の<br>デバッグログ</a>
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.accordion-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const acc = this.parentElement;
+        acc.classList.toggle('active');
+    });
+});
+</script>
+
+</body>
+</html>

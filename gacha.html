@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>SCAMPER Novelist – 視点ガチャ</title>
+<style>
+  :root { --bg:#0f172a; --card:#111827; --fg:#e5e7eb; --muted:#9ca3af; --acc:#22d3ee; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:linear-gradient(180deg,#0b1222,#0f172a 30%,#0b1222);color:var(--fg)}
+  header{padding:20px 16px;text-align:center}
+  header h1{margin:0;font-size:1.4rem;letter-spacing:.02em}
+  header p{margin:.25rem 0 0;color:var(--muted)}
+  main{max-width:960px;margin:0 auto;padding:16px;display:grid;gap:16px}
+  .card{background:rgba(17,24,39,.6);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:16px;box-shadow:0 8px 30px rgba(0,0,0,.25);backdrop-filter: blur(6px)}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  label{display:inline-flex;align-items:center;gap:8px;font-size:.95rem;color:var(--muted)}
+  input[type="checkbox"]{width:18px;height:18px;accent-color:var(--acc)}
+  select,input[type="text"]{width:100%;background:#0b1020;border:1px solid rgba(255,255,255,.12);color:var(--fg);border-radius:10px;padding:10px 12px;font-size:1rem}
+  .btn{border:1px solid rgba(255,255,255,.16);background:#0b1327;color:#e6fbff;padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:600}
+  .btn:hover{border-color:var(--acc)}
+  .muted{color:var(--muted);font-size:.9rem}
+  .pill{display:inline-block;background:#0a1a2f;border:1px solid rgba(255,255,255,.12);padding:6px 10px;border-radius:999px;font-size:.85rem;color:#bfeaff}
+  .result{font-size:1.02rem;line-height:1.6}
+  .grid{display:grid;gap:12px}
+  @media(min-width:960px){.grid-2{grid-template-columns:1fr 1fr}}
+  h2{margin:.4em 0 0}
+  ul{margin:.4em 0 .2em 1.25em}
+  .small{font-size:.85rem}
+  .hidden{display:none}
+</style>
+</head>
+
+<body>
+<header>
+    <h1>🎲 SCAMPER Novelist – 視点ガチャ</h1>
+    <p>チェックしたカテゴリから「どの視点で考えるか」をガチャる。お題は手入力 or Favs/Journalsから抽選。</p>
+</header>
+
+<main>
+<section class="card">
+    <div class="row" style="justify-content:space-between">
+        <div class="row">
+            <label><input type="checkbox" class="sc" value="S" checked>S – Substitute</label>
+            <label><input type="checkbox" class="sc" value="C" checked>C – Combine</label>
+            <label><input type="checkbox" class="sc" value="A" checked>A – Adapt</label>
+            <label><input type="checkbox" class="sc" value="M" checked>M – Modify</label>
+            <label><input type="checkbox" class="sc" value="P" checked>P – Put to other use</label>
+            <label><input type="checkbox" class="sc" value="E" checked>E – Eliminate</label>
+            <label><input type="checkbox" class="sc" value="R" checked>R – Reverse/Rearrange</label>
+        </div>
+        <span class="pill" id="authState">未ログイン</span>
+    </div>
+
+    <div class="grid grid-2">
+        <div class="card">
+            <h3 style="margin-top:0">お題（モチーフ/テーマ）</h3>
+        <div class="grid">
+            <select id="targetSource">
+                <option value="manual">手入力</option>
+                <option value="favs">Favsからランダム</option>
+                <option value="journals">Journalsからランダム</option>
+            </select>
+            <input id="manualTopic" type="text" placeholder="例）『廃校になった音楽室』『忘れられない夏祭り』など">
+            <div class="row" style="gap:8px">
+                <button class="btn" id="pullRandom" title="選択が Favs/Journals のときのみ">ランダム取得</button>
+                <span id="devHint" class="muted small hidden">DEV: Firestore paths = users/{uid}/favs & users/{uid}/journals</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-top:0">ガチャ設定</h3>
+        <div class="grid">
+            <label>何個引く？
+                <select id="numPicks">
+                    <option>1</option><option selected>2</option><option>3</option>
+                </select>
+            </label>
+            <label><input type="checkbox" id="autoTitle" checked> タイトル雛形を同時に作る</label>
+            </div>
+        </div>
+    </div>
+
+    <div class="row" style="justify-content:flex-end; gap:8px; margin-top:8px">
+        <button class="btn" id="draw">🎲 視点をガチャる</button>
+        <button class="btn" id="copy">📋 コピー</button>
+        <button class="btn" id="saveJournal" title="Firestoreに保存">💾 作品案に保存</button>
+    </div>
+</section>
+
+    <section class="card">
+      <h3 style="margin-top:0">結果</h3>
+      <div id="result" class="result"></div>
+    </section>
+  </main>
+
+<!-- Firebase v10+ CDN -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
+    import { getFirestore, collection, getDocs, addDoc, serverTimestamp, query, limit } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+
+    // 追加（統一管理）
+    const COL = { favs: 'favs', journals: 'journals', ideas: 'ideas' };
+    const userCol = (uid, name) => collection(db, `users/${uid}/${COL[name]}`);
+
+
+// === Firebase 設定 ===
+const firebaseConfig = {
+    apiKey: "",
+    authDomain: "",
+    projectId: "",
+    storageBucket: "",
+    messagingSenderId: "",
+    appId: ""
+};
+
+    // ====== 初期化 ======
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db   = getFirestore(app);
+
+    // DEV判定：localhostのみUID/ヒント表示
+    const DEV = ['localhost','127.0.0.1'].includes(location.hostname);
+    const badge = document.getElementById('authState');
+    const devHint = document.getElementById('devHint');
+    if (DEV) devHint.classList.remove('hidden');
+
+    onAuthStateChanged(auth, async (user) => {
+        if (!user) { try { await signInAnonymously(auth); return; } catch(e) {} }
+        if (auth.currentUser) badge.textContent = DEV ? `uid: ${auth.currentUser.uid.slice(0,6)}…` : 'ログイン中';
+        else badge.textContent = '未ログイン';
+    });
+
+    // ===== SCAMPER 定義（視点＝ラベル＋説明＋問い）=====
+    const LABEL = {S:"Substitute",C:"Combine",A:"Adapt",M:"Modify",P:"Put to other use",E:"Eliminate",R:"Reverse/Rearrange"};
+
+const DESC = {
+    S:"要素・立場・媒体を別のものに置き換えてみる視点。",
+    C:"離れた要素を束ねたり並走させて新しい関係を作る視点。",
+    A:"他の文脈・制約・市場に当てはめてみる視点。",
+    M:"強弱をいじる／粒度やルールを改造してみる視点。",
+    P:"副産物や既存資産を別用途に転用する視点。",
+    E:"“なくても成立するもの”を思い切って削る視点。",
+    R:"順序や役割を入れ替えて因果を反転させる視点。"
+};
+
+const QUESTIONS = {
+    S:[
+        "誰を/何を別の存在に置き換えると物語が変わる？",
+        "好きな本の登場人物があなただったら？",
+        "語り手を変えると“真相”は別の顔になる？"
+    ],
+    C:[
+        "無関係に見える出来事を同時進行で結ぶと何が露わに？",
+        "科学と呪術、法と慣習など“二重の理”を共存させると？",
+        "二人の一人称を交互に並べると矛盾はどこに生まれる？"
+    ],
+    A:[
+        "古いモチーフを現代のSNS/企業/行政に当てはめたら？",
+        "別の文化圏・制度の制約下で同じ事件はどう変質？",
+        "違う年齢層・職業の主人公なら何を優先する？"
+    ],
+    M:[
+        "場所や時間を変えると？",
+        "存在しないルールや法律を仮定すると？",
+        "家族や友人の個性をデフォルメしてみると？"
+    ],
+    P:[
+        "既存の本・映画・楽曲のタイトルをオマージュすると？",
+        "過去に書こうとした作品の一部を使いまわすなら？",
+        "思想・哲学・名言などからヒントは得られる？"
+    ],
+    E:[
+        "会話/固有名/光源/偶然のどれを消すと緊張が増す？",
+        "“説明”を削って描写だけでどこまで伝えられる？",
+        "時間表記を消すと読者に何を委ねられる？"
+    ],
+    R:[
+        "結末→発端の順で語ると何が“謎”として残る？",
+        "主役とモブを入れ替えると世界観はどう転ぶ？",
+        "追う/追われるの主従を逆転すると動機はどう露わに？"
+    ]
+};
+
+// タイトル雛形用：軽いフレーバー
+    const GENRES  = ["文学","ミステリ","SF","ファンタジー","恋愛","社会派","ホラー","群像劇"];
+    const SETTINGS= ["東京","地方都市","海外","宇宙コロニー","学校","温泉地","砂漠都市","高層団地"];
+    const TONES   = ["静謐","疾走","陰鬱","アイロニック","瑞々しい","乾いた","不穏","温かい"];
+
+// ===== UI 参照 =====
+    const manualTopic  = document.getElementById('manualTopic');
+    const targetSource = document.getElementById('targetSource');
+    const pullBtn      = document.getElementById('pullRandom');
+    const drawBtn      = document.getElementById('draw');
+    const copyBtn      = document.getElementById('copy');
+    const saveBtn      = document.getElementById('saveJournal');
+    const resultEl     = document.getElementById('result');
+    const numPicksSel  = document.getElementById('numPicks');
+    const autoTitleChk = document.getElementById('autoTitle');
+
+    const chk = () => Array.from(document.querySelectorAll('.sc:checked')).map(x=>x.value);
+    const rnd = (arr) => arr[Math.floor(Math.random()*arr.length)];
+    function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]))}
+
+async function getRandomDoc(path){
+    const uid = auth.currentUser?.uid;
+    if (!uid) throw new Error("未ログインです");
+    const snap = await getDocs(query(collection(db, `users/${uid}/${path}`), limit(50)));
+    const docs = snap.docs;
+    if (!docs.length) throw new Error(`${path} が空です`);
+    return rnd(docs).data();
+}
+
+pullBtn.addEventListener('click', async () => {
+    try{
+        if (targetSource.value === 'favs') {
+            const d = await getRandomDoc('favs');
+            manualTopic.value = d.title || d.content?.slice(0,40) || '（タイトルなし）';
+        } else if (targetSource.value === 'journals') {
+            const d = await getRandomDoc('journals');
+            manualTopic.value = d.title || d.content?.slice(0,40) || '（タイトルなし）';
+        } else {
+            alert('ソースが Favs / Journals のときだけ取得できます');
+        }
+    }catch(e){ alert('ランダム取得エラー：' + e.message); }
+});
+
+function drawPerspectives(topic, candidates, n, autoTitle){
+    // 候補から重複なしで n 抽選
+    const pool = [...candidates];
+    const picks = [];
+    for(let i=0;i<n && pool.length;i++){
+        const idx = Math.floor(Math.random()*pool.length);
+        const tag = pool.splice(idx,1)[0];
+        const label = LABEL[tag];
+        const qset  = QUESTIONS[tag];
+        const chosenQs = qset.sort(()=>Math.random()-0.5).slice(0,2); // 2問だけ
+        const title = autoTitle ? `『${topic}：${label}視点』` : null;
+        const flavor = autoTitle ? `ジャンル：${rnd(GENRES)}／舞台：${rnd(SETTINGS)}／トーン：${rnd(TONES)}` : null;
+        picks.push({ tag, label, title, topic, desc: DESC[tag], questions: chosenQs, flavor });
+    }
+    return picks;
+}
+
+function render(picks){
+    resultEl.innerHTML = picks.map((p,i)=>(
+        `<div class="card">
+            <div class="pill">#${i+1} ${p.tag} – ${p.label}</div>
+            ${p.title ? `<h2>${escapeHtml(p.title)}</h2><p class="muted">${escapeHtml(p.flavor||"")}</p>` : ``}
+            <p>${escapeHtml(p.desc)}</p>
+            <ul>${p.questions.map(q=>`<li>${escapeHtml(q)}</li>`).join('')}</ul>
+            <p class="muted small">メモ：${escapeHtml(p.topic)}</p>
+        </div>`
+    )).join('');
+    resultEl.dataset.raw = JSON.stringify(picks);
+}
+
+drawBtn.addEventListener('click', () => {
+    const topic = (manualTopic.value||'').trim();
+    if (!topic) { alert('お題を入力するか、Favs/Journalsから取得してください'); return; }
+    const candidates = chk();
+    if (!candidates.length){ alert('少なくとも1つのカテゴリを選んでください'); return; }
+    const n = parseInt(numPicksSel.value,10);
+    const picks = drawPerspectives(topic, candidates, n, autoTitleChk.checked);
+    render(picks);
+});
+
+copyBtn.addEventListener('click', async () => {
+    const raw = resultEl.dataset.raw;
+    if (!raw) { alert('まずガチャを回してください'); return; }
+    const picks = JSON.parse(raw);
+    const text = picks.map((p,i)=>[
+        `#${i+1} ${p.tag} – ${p.label}`,
+        p.title ? p.title : '',
+        p.flavor ? p.flavor : '',
+        p.desc,
+        '■ 問い',
+        ...p.questions.map(q=>`- ${q}`),
+        `■ お題メモ: ${p.topic}`
+    ].filter(Boolean).join('\n')).join('\n\n---\n\n');
+    await navigator.clipboard.writeText(text);
+    alert('コピーしました！');
+});
+
+saveBtn.addEventListener('click', async () => {
+    const raw = resultEl.dataset.raw;
+    if (!raw) { alert('まず視点ガチャを回してください'); return; }
+
+    const u = auth.currentUser;
+    if (!u) { alert('未ログインです'); return; }
+
+saveBtn.disabled = true;
+try {
+    const picks = JSON.parse(raw); // draw後にrenderが入れてくれてる配列
+    const topic = (manualTopic.value || '無題').trim();
+
+    // タイトル：お題 × 使った視点タグ
+    const title = `作品案：${topic} × ${picks.map(p => p.tag).join('+')}`;
+
+    // 本文：各視点の説明・問い・自動生成のタイトル/あらすじを結合
+    const content = picks.map((p, i) => [
+        `#${i+1} ${p.tag} – ${p.label}`,
+        p.genTitle   ? `タイトル案：${p.genTitle}` : (p.title ? `タイトル案：${p.title}` : ''),
+        p.genSynopsis? `あらすじ：${p.genSynopsis}` : (p.body  ? `あらすじ：\n${p.body}`  : ''),
+        p.flavor     ? `フレーバー：${p.flavor}` : '',
+        p.desc       ? `視点の説明：${p.desc}` : '',
+        (p.questions && p.questions.length)
+        ? ['■ 問い', ...p.questions.map(q => `- ${q}`)].join('\n')
+        : '',
+    `■ お題メモ: ${p.topic || topic}`
+    ].filter(Boolean).join('\n')).join('\n\n---\n\n');
+
+    await addDoc(collection(db, `users/${u.uid}/ideas`), {
+        title,
+        content,
+        topic,
+        tags: picks.map(p => p.tag),     // 例: ["S","R"]
+        createdAt: serverTimestamp(),
+        source: 'SCAMPER_PERSPECTIVE_GACHA'
+    });
+
+    alert('作品案に保存しました！');
+    } catch (e) {
+        alert('保存エラー：' + e.message);
+    } finally {
+        saveBtn.disabled = false;
+    }
+});
+
+</script>
+</body>
+</html>
